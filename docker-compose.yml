@@ -1,0 +1,12 @@
+services:
+  manul:
+    build: .
+    image: manul:latest
+    container_name: manul-container
+    restart: always
+    volumes: 
+      - ./config:/app/config
+      - ./database:/app/database
+      - ./log:/app/log
+    environment:
+      - TZ=Asia/Krasnoyarsk
