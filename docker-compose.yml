@@ -4,9 +4,49 @@ services:
     image: manul:latest
     container_name: manul-container
     restart: always
-    volumes: 
-      - ./config:/app/config
-      - ./database:/app/database
-      - ./log:/app/log
     environment:
+      # Container
       - TZ=Asia/Krasnoyarsk
+      # Log
+      - LOG_LEVEL=debug
+      - LOG_STDOUT=true
+      # Bot
+      - BOT_TOKEN=token
+      # PostgreSQL
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=manul
+    volumes: 
+      - ./local/manul-data/log:/app/log
+      - ./local/manul-data/photos:/app/photos
+    depends_on:
+      - postgres
+  postgres:
+      image: postgres:latest
+      container_name: postgres-container
+      restart: always
+      environment:
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=password
+        - POSTGRES_DB=manul
+      ports:
+        - "5432:5432"
+      volumes:
+        - ./local/pgdata:/var/lib/postgresql/data
+  pgadmin:
+      image: dpage/pgadmin4:latest
+      container_name: pgadmin-container
+      restart: always
+      user: '$UID:$GID'
+      environment:
+        - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+        - PGADMIN_DEFAULT_PASSWORD=admin
+        - PGADMIN_LISTEN_PORT=80
+      ports:
+        - "8081:80"
+      volumes:
+        - ./local/pgadmin-data:/var/lib/pgadmin
+      depends_on:
+        - postgres

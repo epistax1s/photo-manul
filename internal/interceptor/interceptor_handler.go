@@ -25,6 +25,6 @@ func (i *HandlerInterceptor) Handle(update *tgbotapi.Update) {
 			Get(chatID).
 			Handle(update)
 	} else {
-		log.Error("This bot can only be used in private conversations and in groups")
+		log.Error("This bot can only be used in private conversations")
 	}
 }

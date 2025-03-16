@@ -24,9 +24,7 @@ func (i *CancelInterceptor) Handle(update *tgbotapi.Update) {
 				Set(core.Idle, chatID, &core.StateContext{}).
 				Init(update)
 
-			log.Info(
-				"the status has been reset for the user",
-				"chatID", chatID)
+			log.Info("the status has been reset for the user", "chatID", chatID)
 
 			return
 		}

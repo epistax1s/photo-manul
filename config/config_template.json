@@ -1,9 +1,0 @@
-{
-    "bot": {
-        "token": ""
-    },
-    "log": {
-        "level": "debug",
-        "stdout": true
-    }
-}

@@ -8,12 +8,14 @@ import (
 type PhotoState struct {
 	server       *server.Server
 	stateMachine *StateMachine
+	context      *StateContext
 }
 
-func NewPhotoState(server *server.Server, stateMachine *StateMachine, data *StateContext) State {
+func NewPhotoState(server *server.Server, stateMachine *StateMachine, context *StateContext) State {
 	state := &PhotoState{
 		server:       server,
 		stateMachine: stateMachine,
+		context:      context,
 	}
 
 	return state

@@ -2,26 +2,25 @@ package database
 
 import (
 	"fmt"
+
+	"github.com/epistax1s/photo-manul/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"os"
 )
 
-func InitDatabase() (*gorm.DB, error) {
-	host := os.Getenv("DB_HOST")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-	port := os.Getenv("DB_PORT")
+func InitDatabase(cfg *config.Config) (*gorm.DB, error) {
+	dsn := fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Postgres.Host,
+		cfg.Postgres.Port,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DBName,
+	)
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s", host, user, password, dbname, port)
-
-	db, err := gorm.Open(postgres.New(postgres.Config{
-		DSN: dsn,
-	}), &gorm.Config{})
-
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
 
 	return db, nil

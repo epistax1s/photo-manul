@@ -18,8 +18,14 @@ func main() {
 	updateChan := server.Manul.GetUpdatesChan(updateConfig)
 
 	chain := interceptor.NewChainBuilder().
-		Add(&interceptor.LogInterceptor{}).
 		Add(&interceptor.RecoverInterceptor{}).
+		Add(&interceptor.LogInterceptor{}).
+		Add(&interceptor.RegistrationInterceptor{
+			Server: server,
+		}).
+		Add(&interceptor.SecurityInterceptor{
+			Server: server,
+		}).
 		Add(&interceptor.CancelInterceptor{
 			Server:       server,
 			StateMachine: stateMachine,

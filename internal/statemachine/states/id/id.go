@@ -10,7 +10,7 @@ type IDState struct {
 	stateMachine *StateMachine
 }
 
-func NewIDState(server *server.Server, stateMachine *StateMachine, data *StateContext) State {
+func NewIDState(server *server.Server, stateMachine *StateMachine, context *StateContext) State {
 	state := &IDState{
 		server:       server,
 		stateMachine: stateMachine,

@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 
+	"github.com/epistax1s/photo-manul/internal/model"
 	"github.com/epistax1s/photo-manul/internal/server"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -32,8 +33,8 @@ const (
 )
 
 type StateContext struct {
-	EmployeeID string
-	NextState  StateType
+	Employee  *model.Employee
+	NextState StateType
 }
 
 func (stateMachine *StateMachine) Set(stateType StateType, chatID int64, data *StateContext) State {

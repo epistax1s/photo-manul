@@ -6,10 +6,9 @@ import (
 )
 
 const (
-	cmdStart  = "start"
-	cmdHelp   = "help"
-	cmdPhoto  = "photo"
-	cmdInvite = "invite"
+	cmdStart = "start"
+	cmdHelp  = "help"
+	cmdPhoto = "photo"
 )
 
 type IdleState struct {
@@ -18,17 +17,16 @@ type IdleState struct {
 	handlers     map[string]StateHandler
 }
 
-func NewIdleState(server *server.Server, stateMachine *StateMachine, data *StateContext) State {
+func NewIdleState(server *server.Server, stateMachine *StateMachine, context *StateContext) State {
 	state := &IdleState{
 		server:       server,
 		stateMachine: stateMachine,
 	}
 
 	state.handlers = map[string]StateHandler{
-		cmdStart:  state.helpHandler,
-		cmdHelp:   state.helpHandler,
-		cmdPhoto:  state.photoHandler,
-		cmdInvite: state.inviteHandler,
+		cmdStart: state.helpHandler,
+		cmdHelp:  state.helpHandler,
+		cmdPhoto: state.photoHandler,
 	}
 
 	return state
