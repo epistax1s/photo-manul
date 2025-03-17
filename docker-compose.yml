@@ -19,8 +19,8 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=manul
     volumes: 
-      - ./local/manul-data/log:/app/log
-      - ./local/manul-data/photos:/app/photos
+      - ./.local/manul-data/log:/app/log
+      - ./.local/manul-data/photos:/app/photos
     depends_on:
       - postgres
   postgres:
@@ -34,7 +34,7 @@ services:
       ports:
         - "5432:5432"
       volumes:
-        - ./local/pgdata:/var/lib/postgresql/data
+        - ./.local/pgdata:/var/lib/postgresql/data
   pgadmin:
       image: dpage/pgadmin4:latest
       container_name: pgadmin-container
@@ -47,6 +47,6 @@ services:
       ports:
         - "8081:80"
       volumes:
-        - ./local/pgadmin-data:/var/lib/pgadmin
+        - ./.local/pgadmin-data:/var/lib/pgadmin
       depends_on:
         - postgres
