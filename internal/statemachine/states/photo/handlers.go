@@ -39,7 +39,7 @@ func (state *PhotoState) Handle(update *tgbotapi.Update) {
 	// Извлекаем ID файла
 	var fileID string
 	if update.Message != nil {
-		if update.Message.Photo != nil && len(update.Message.Photo) > 0 {
+		if len(update.Message.Photo) > 0 {
 			// Если это фото, берём последнюю (самую большую) версию
 			photo := update.Message.Photo[len(update.Message.Photo)-1]
 			fileID = photo.FileID
@@ -57,7 +57,7 @@ func (state *PhotoState) Handle(update *tgbotapi.Update) {
 
 	// Получаем прямой URL
 	url, err := manul.GetFileDirectURL(fileID)
-	if url == "" {
+	if err != nil {
 		manul.SendMessage(chatID, "Ошибка: не удалось получить URL файла 🤕")
 		return
 	}
@@ -80,13 +80,21 @@ func (state *PhotoState) Handle(update *tgbotapi.Update) {
 		return
 	}
 
+	// Читаем всё содержимое в буфер
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error("Error reading response body", "err", err)
+		manul.SendMessage(chatID, "Ошибка: не удалось прочитать файл 🤕")
+		return
+	}
+
 	// Валидация формата
-	if !state.validatePhoto(resp, url, chatID) {
+	if !state.validatePhoto(data, url, chatID) {
 		return
 	}
 
 	// Сохранение файла
-	uniqueFileName, err := state.savePhoto(resp, chatID)
+	uniqueFileName, err := state.savePhoto(data, chatID)
 	if err != nil {
 		return
 	}
@@ -108,7 +116,7 @@ func (state *PhotoState) Handle(update *tgbotapi.Update) {
 		Init(update)
 }
 
-func (state *PhotoState) validatePhoto(resp *http.Response, url string, chatID int64) bool {
+func (state *PhotoState) validatePhoto(data []byte, url string, chatID int64) bool {
 	manul := state.server.Manul
 
 	// Валидируем по расширению
@@ -135,27 +143,16 @@ func (state *PhotoState) validatePhoto(resp *http.Response, url string, chatID i
 		return false
 	}
 
-	// Теперь валидируем по магическим числам
-	// Читаем первые 2 байта для проверки магических чисел JPEG
-	buffer := make([]byte, 2)
-	_, err := io.ReadFull(resp.Body, buffer)
-
-	log.Debug("validatePhoto", "url", url, "buffer", buffer)
-
-	if err != nil {
-		log.Error("Error reading file bytes", "url", url, "err", err)
-
-		manul.SendMessage(chatID, "Ошибка: не удалось прочитать файл 🤕")
+	// Теперь валидируем по магическим числам (первые 2 байта)
+	if len(data) < 2 {
+		log.Error("File too small", "url", url)
+		manul.SendMessage(chatID, "Ошибка: формат файла должен быть JPEG 🤓")
 		return false
 	}
-
-	// JPEG начинается с FF D8
-	isJPEG := bytes.Equal(buffer, []byte{0xFF, 0xD8})
-	log.Debug("validatePhoto", "url", url, "bytes.Equal(buffer, []byte{0xFF, 0xD8})", isJPEG)
-
+	isJPEG := bytes.Equal(data[:2], []byte{0xFF, 0xD8})
+	log.Debug("validatePhoto", "url", url, "isJPEG", isJPEG)
 	if !isJPEG {
-		log.Error("Incorrect file format", "url", url, "first_bytes", buffer)
-
+		log.Error("Incorrect file format", "url", url, "first_bytes", data[:2])
 		manul.SendMessage(chatID, "Ошибка: формат файла должен быть JPEG 🤓")
 		return false
 	}
@@ -163,7 +160,7 @@ func (state *PhotoState) validatePhoto(resp *http.Response, url string, chatID i
 	return true
 }
 
-func (state *PhotoState) savePhoto(resp *http.Response, chatID int64) (string, error) {
+func (state *PhotoState) savePhoto(data []byte, chatID int64) (string, error) {
 	manul := state.server.Manul
 
 	// Генерируем уникальное имя файла
@@ -182,25 +179,10 @@ func (state *PhotoState) savePhoto(resp *http.Response, chatID int64) (string, e
 	}
 
 	// Создаём файл
-	out, err := os.Create(savePath)
-	if err != nil {
-		log.Error("Error when creating a file", "err", err)
-
-		manul.SendMessage(chatID, "Внутренняя ошибка: не удалось сохранить файл 🤕")
-		return "", err
-	}
-	defer out.Close()
-
-	// Копируем содержимое файла
-	_, err = io.Copy(out, resp.Body)
+	err := os.WriteFile(savePath, data, 0644)
 	if err != nil {
 		log.Error("Error when saving a file", "err", err)
-
 		manul.SendMessage(chatID, "Внутренняя ошибка: не удалось сохранить файл 🤕")
-		// Удаляем файл, если копирование не удалось
-		if removeErr := os.Remove(savePath); removeErr != nil {
-			log.Error("Error deleting a file after a failed save", "err", removeErr)
-		}
 		return "", err
 	}
 
