@@ -197,7 +197,7 @@ func (state *PhotoState) savePhoto(uniqueFileName string, data []byte, chatID in
 
 // Карта для транслитерации кириллицы в латиницу
 var cyrToLat = map[rune]string{
-	'а': "а",
+	'а': "a",
 	'б': "b",
 	'в': "v",
 	'г': "g",
