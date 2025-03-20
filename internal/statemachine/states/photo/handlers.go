@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/epistax1s/photo-manul/internal/log"
 	. "github.com/epistax1s/photo-manul/internal/statemachine/core"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/google/uuid"
 )
 
 func (state *PhotoState) Init(update *tgbotapi.Update) {
@@ -35,6 +35,8 @@ func (state *PhotoState) Handle(update *tgbotapi.Update) {
 	employeeService := state.server.EmployeeService
 
 	chatID := update.FromChat().ID
+
+	employee := state.context.Employee
 
 	// Извлекаем ID файла
 	var fileID string
@@ -93,13 +95,19 @@ func (state *PhotoState) Handle(update *tgbotapi.Update) {
 		return
 	}
 
+	// Генерируем имя файла
+	uniqueFileName := employee.EmployeeName
+
+	uniqueFileName = removeSpaces(uniqueFileName)
+	uniqueFileName = transliterate(uniqueFileName)
+	uniqueFileName = uniqueFileName + strconv.FormatInt(employee.EmployeeID, 10)
+	uniqueFileName = uniqueFileName + ".jpg"
+
 	// Сохранение файла
-	uniqueFileName, err := state.savePhoto(data, chatID)
-	if err != nil {
+	if err := state.savePhoto(uniqueFileName, data, chatID); err != nil {
 		return
 	}
 
-	employee := state.context.Employee
 	employee.ImagePath = uniqueFileName
 
 	if err := employeeService.UpdateEmployee(employee); err != nil {
@@ -160,11 +168,9 @@ func (state *PhotoState) validatePhoto(data []byte, url string, chatID int64) bo
 	return true
 }
 
-func (state *PhotoState) savePhoto(data []byte, chatID int64) (string, error) {
+func (state *PhotoState) savePhoto(uniqueFileName string, data []byte, chatID int64) error {
 	manul := state.server.Manul
 
-	// Генерируем уникальное имя файла
-	uniqueFileName := uuid.New().String() + ".jpg"
 	saveDir := "/app/photos/"
 	savePath := filepath.Join(saveDir, uniqueFileName)
 
@@ -174,7 +180,7 @@ func (state *PhotoState) savePhoto(data []byte, chatID int64) (string, error) {
 			log.Error("Error when creating a directory", "err", err)
 
 			manul.SendMessage(chatID, "Внутренняя ошибка: не удалось создать директорию 🤕")
-			return "", err
+			return err
 		}
 	}
 
@@ -183,8 +189,95 @@ func (state *PhotoState) savePhoto(data []byte, chatID int64) (string, error) {
 	if err != nil {
 		log.Error("Error when saving a file", "err", err)
 		manul.SendMessage(chatID, "Внутренняя ошибка: не удалось сохранить файл 🤕")
-		return "", err
+		return err
 	}
 
-	return uniqueFileName, nil
+	return nil
+}
+
+// Карта для транслитерации кириллицы в латиницу
+var cyrToLat = map[rune]string{
+	'а': "а",
+	'б': "b",
+	'в': "v",
+	'г': "g",
+	'д': "d",
+	'е': "e",
+	'ё': "yo",
+	'ж': "zh",
+	'з': "z",
+	'и': "i",
+	'й': "y",
+	'к': "k",
+	'л': "l",
+	'м': "m",
+	'н': "n",
+	'о': "o",
+	'п': "p",
+	'р': "r",
+	'с': "s",
+	'т': "t",
+	'у': "u",
+	'ф': "f",
+	'х': "kh",
+	'ц': "ts",
+	'ч': "ch",
+	'ш': "sh",
+	'щ': "sch",
+	'ъ': "",
+	'ы': "y",
+	'ь': "",
+	'э': "e",
+	'ю': "yu",
+	'я': "ya",
+	'А': "A",
+	'Б': "B",
+	'В': "V",
+	'Г': "G",
+	'Д': "D",
+	'Е': "E",
+	'Ё': "Yo",
+	'Ж': "Zh",
+	'З': "Z",
+	'И': "I",
+	'Й': "Y",
+	'К': "K",
+	'Л': "L",
+	'М': "M",
+	'Н': "N",
+	'О': "O",
+	'П': "P",
+	'Р': "R",
+	'С': "S",
+	'Т': "T",
+	'У': "U",
+	'Ф': "F",
+	'Х': "Kh",
+	'Ц': "Ts",
+	'Ч': "Ch",
+	'Ш': "Sh",
+	'Щ': "Sch",
+	'Ъ': "",
+	'Ы': "Y",
+	'Ь': "",
+	'Э': "E",
+	'Ю': "Yu",
+	'Я': "Ya",
+}
+
+// Функция транслитерации
+func transliterate(s string) string {
+	var result strings.Builder
+	for _, r := range s {
+		if lat, ok := cyrToLat[r]; ok {
+			result.WriteString(lat)
+		} else {
+			result.WriteRune(r) // Оставляем символы, которых нет в карте
+		}
+	}
+	return result.String()
+}
+
+func removeSpaces(s string) string {
+	return strings.ReplaceAll(s, " ", "")
 }
